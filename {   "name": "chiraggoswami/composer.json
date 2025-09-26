@@ -1,7 +1,0 @@
-{
-  "name": "chiraggoswami/insecure-php-demo",
-  "description": "A demo PHP project with intentional security flaws",
-  "require": {
-    "php": ">=7.0"
-  }
-}
