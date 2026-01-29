@@ -1,0 +1,21 @@
+{
+  "manifest_version": 3,
+  "name": "Site Data Usage Inspector",
+  "version": "0.1.0",
+  "description": "Analyzes network requests and storage usage to highlight potential exposure of sensitive data.",
+  "permissions": ["activeTab", "tabs", "storage", "webRequest", "cookies"],
+  "host_permissions": ["<all_urls>"],
+  "background": {
+    "service_worker": "service_worker.js"
+  },
+  "action": {
+    "default_popup": "popup.html"
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content_script.js"],
+      "run_at": "document_idle"
+    }
+  ]
+}
