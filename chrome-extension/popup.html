@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Site Data Usage Inspector</title>
+    <link rel="stylesheet" href="popup.css" />
+  </head>
+  <body>
+    <header>
+      <h1>Site Data Usage Inspector</h1>
+      <p class="subtitle">Review what the current site sends or stores.</p>
+    </header>
+
+    <section class="summary" id="summary">
+      <div class="card">
+        <h2>Network</h2>
+        <p id="request-count">0 requests observed</p>
+        <p id="sensitive-count">0 sensitive findings</p>
+      </div>
+      <div class="card">
+        <h2>Storage</h2>
+        <p id="local-storage">Local storage: --</p>
+        <p id="session-storage">Session storage: --</p>
+      </div>
+      <div class="card">
+        <h2>Cookies</h2>
+        <p id="cookie-count">0 cookies detected</p>
+      </div>
+    </section>
+
+    <section>
+      <h2>Potentially Sensitive Findings</h2>
+      <ul id="findings" class="list"></ul>
+    </section>
+
+    <section>
+      <h2>Recent Requests</h2>
+      <ul id="requests" class="list"></ul>
+    </section>
+
+    <footer>
+      <p>
+        This tool highlights risky signals, but it does not prove malicious intent.
+        Review the entries and decide if data sharing is appropriate.
+      </p>
+    </footer>
+
+    <script src="popup.js"></script>
+  </body>
+</html>
