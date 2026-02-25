@@ -1,0 +1,3 @@
+name,company,sender,country,subject,body,email1,email2,email3
+John Doe,Acme Corp,astha@cybernara.net,India,Intro for {{company}},Hi {{name}} from {{country}} - sender {{sender}},john.doe@example.com,john@acmecorp.com,
+Jane Smith,Globex,chirag@cybernara.com,UK,Partnership with {{company}},Hello {{name}} from {{company}},jane.smith@globex.com,,
