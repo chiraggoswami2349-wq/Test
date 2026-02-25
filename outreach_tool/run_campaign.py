@@ -96,19 +96,57 @@ def process_campaign(
             raise ValueError("Verification enabled but VERIFALIA credentials are missing.")
         verifalia_client = VerifaliaClient(secrets.verifalia_username, secrets.verifalia_password)
 
-    stats = CampaignStats(total_rows=len(dataframe))
+    prepared_rows = []
+    for idx, row in dataframe.iterrows():
+        row_data = {k: ("" if pd.isna(v) else str(v)) for k, v in row.to_dict().items()}
+        prepared_rows.append((idx + 1, row_data))
+
+    stats = CampaignStats(total_rows=len(prepared_rows))
     log_rows: list[dict] = []
     fatal_error: str | None = None
     verification_enabled_runtime = settings.verification_enabled
 
-    for idx, row in dataframe.iterrows():
-        if stats.sent_count >= settings.max_emails_per_run:
-            break
+    pending_positions = list(range(len(prepared_rows)))
+    sender_next_available_epoch: dict[str, float] = {}
+
+    while pending_positions and stats.sent_count < settings.max_emails_per_run:
         if should_stop and should_stop():
             break
 
-        stats.current_row = idx + 1
-        row_data = {k: ("" if pd.isna(v) else str(v)) for k, v in row.to_dict().items()}
+        now_epoch = time.time()
+        selected_pending_slot: int | None = None
+        earliest_ready_epoch: float | None = None
+
+        for slot, row_position in enumerate(pending_positions):
+            row_number, row_data = prepared_rows[row_position]
+            sender = row_data.get("sender", "").strip().lower()
+            ready_epoch = sender_next_available_epoch.get(sender, 0.0)
+            if sender in settings.sender_allow_list and ready_epoch > now_epoch:
+                if earliest_ready_epoch is None or ready_epoch < earliest_ready_epoch:
+                    earliest_ready_epoch = ready_epoch
+                continue
+
+            selected_pending_slot = slot
+            break
+
+        if selected_pending_slot is None:
+            if earliest_ready_epoch is None:
+                break
+            sleep_seconds = max(1, int(earliest_ready_epoch - now_epoch))
+            if progress_callback:
+                progress_callback(
+                    stats,
+                    f"All ready senders are cooling down. Waiting {sleep_seconds} seconds for the next mailbox window.",
+                )
+            was_stopped = _interruptible_sleep(sleep_seconds, should_stop)
+            if was_stopped:
+                break
+            continue
+
+        selected_row_position = pending_positions.pop(selected_pending_slot)
+        row_number, row_data = prepared_rows[selected_row_position]
+
+        stats.current_row = row_number
         log_row = _base_log_row(row_data, settings)
         log_row["verification_enabled"] = verification_enabled_runtime
 
@@ -123,6 +161,14 @@ def process_campaign(
             log_row["error_message"] = "Invalid_Sender_Not_Allowed"
             stats.skipped_count += 1
             log_rows.append(log_row)
+            continue
+
+        ready_epoch = sender_next_available_epoch.get(sender, 0.0)
+        if ready_epoch > time.time():
+            wait_seconds = max(1, int(ready_epoch - time.time()))
+            if progress_callback:
+                progress_callback(stats, f"Mailbox {sender} is cooling down for {wait_seconds} more seconds; row re-queued.")
+            pending_positions.append(selected_row_position)
             continue
 
         if progress_callback:
@@ -234,13 +280,10 @@ def process_campaign(
 
         log_rows.append(log_row)
 
-        if stats.sent_count < settings.max_emails_per_run:
-            delay = random.randint(settings.delay_min_seconds, settings.delay_max_seconds)
-            if progress_callback:
-                progress_callback(stats, f"Enforcing delay for {delay} seconds before next send")
-            was_stopped = _interruptible_sleep(delay, should_stop)
-            if was_stopped:
-                break
+        delay = random.randint(settings.delay_min_seconds, settings.delay_max_seconds)
+        sender_next_available_epoch[sender] = time.time() + delay
+        if progress_callback:
+            progress_callback(stats, f"Mailbox {sender} delay started for {delay} seconds")
 
     log_path = make_log_path(OUTPUT_DIR)
     write_logs(log_path, log_rows)

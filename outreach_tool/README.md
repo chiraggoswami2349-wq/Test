@@ -10,6 +10,7 @@ Internal Streamlit-based tool to verify and send B2B outreach emails through Mic
 - Sender allow-list enforcement.
 - Microsoft Graph token caching + automatic refresh on expiry / 401.
 - Retry handling for Graph `429` and `5xx` responses.
+- Delay is enforced per sender mailbox independently (A/B/C/D each maintains its own cooldown).
 - Exportable per-run log in `output/outreach_log_YYYYMMDD_HHMM.csv`.
 
 ## Project structure
