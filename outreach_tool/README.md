@@ -17,6 +17,7 @@ Internal Streamlit-based tool to verify and send B2B outreach emails through Mic
 ```text
 outreach_tool/
   app.py
+  desktop_app.py
   run_campaign.py
   requirements.txt
   config.py
@@ -48,6 +49,15 @@ Fill `.env`:
 - `CLIENT_SECRET`
 - `VERIFALIA_USERNAME` (only needed if verification ON)
 - `VERIFALIA_PASSWORD` (only needed if verification ON)
+
+## Run one-screen desktop app (no server)
+
+```bash
+cd outreach_tool
+python desktop_app.py
+```
+
+This opens a single GUI window with all campaign options (`input`, `verify`, `quality`, `max`, `delay-min`, `delay-max`, and defer behavior) and a live logs panel below.
 
 ## Run Streamlit app
 
