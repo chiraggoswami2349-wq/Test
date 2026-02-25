@@ -3,7 +3,7 @@
 Internal Streamlit-based tool to verify and send B2B outreach emails through Microsoft 365 Graph with sender allow-list controls, business-hour checks by country, and detailed CSV logs.
 
 ## Features
-- Upload CSV and run campaign with one click.
+- Upload CSV/Excel and run campaign with one click.
 - Optional Verifalia verification (`Standard`, `High`, `Extreme`).
 - Tries `email1` -> `email2` -> `email3`; sends only once using first sendable email.
 - Country-aware business-hour gate (Mon-Fri, 09:00-18:00 local time).
@@ -56,6 +56,8 @@ cd outreach_tool
 streamlit run app.py
 ```
 
+The Streamlit panel also includes live operator logs such as Verifalia checks, send attempts, successful sends, and enforced delays.
+
 ## Optional CLI mode
 
 ```bash
@@ -63,7 +65,7 @@ cd outreach_tool
 python run_campaign.py --input sample/leads_sample.csv --verify --quality High --max 50
 ```
 
-## CSV columns
+## Input columns (CSV or Excel)
 Required:
 - `name`
 - `company`

@@ -24,11 +24,21 @@ if "fatal_error" not in st.session_state:
     st.session_state.fatal_error = None
 
 st.title("Cybernara Internal Outreach Tool (Verify + Send)")
+st.markdown(
+    """
+    ### Daily flow for Astha
+    1. Upload leads file (CSV/Excel)
+    2. Choose verification and pacing settings
+    3. Click **Start** and monitor live logs
+    4. Download the run log when complete
+    """
+)
 
 uploader_col, controls_col = st.columns([2, 1])
 
 with uploader_col:
-    uploaded_file = st.file_uploader("Upload leads CSV", type=["csv"])
+    uploaded_file = st.file_uploader("Upload leads file", type=["csv", "xlsx", "xls"])
+    st.caption("Supports CSV and Excel files so Astha can upload directly from a spreadsheet export.")
 
 with controls_col:
     verification_enabled = st.toggle("Verification ON", value=True)
@@ -76,13 +86,17 @@ live_log_placeholder.code("\n".join(st.session_state.live_lines[-30:]), language
 
 if start_clicked:
     if uploaded_file is None:
-        st.error("Please upload a CSV file before starting.")
+        st.error("Please upload a leads file before starting.")
     else:
         st.session_state.stop_requested = False
         st.session_state.live_lines = []
         st.session_state.fatal_error = None
 
-        dataframe = pd.read_csv(uploaded_file)
+        suffix = Path(uploaded_file.name).suffix.lower()
+        if suffix in {".xlsx", ".xls"}:
+            dataframe = pd.read_excel(uploaded_file)
+        else:
+            dataframe = pd.read_csv(uploaded_file)
         settings = CampaignSettings(
             verification_enabled=verification_enabled,
             verification_quality=verification_quality,

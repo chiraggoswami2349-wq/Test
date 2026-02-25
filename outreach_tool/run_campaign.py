@@ -116,6 +116,8 @@ def process_campaign(
             progress_callback(stats, f"Processing row {stats.current_row}/{stats.total_rows}")
 
         sender = row_data.get("sender", "").strip().lower()
+        if progress_callback:
+            progress_callback(stats, f"Validating sender mailbox: {sender or '[missing]'}")
         if sender not in settings.sender_allow_list:
             log_row["send_result"] = "Skipped"
             log_row["error_message"] = "Invalid_Sender_Not_Allowed"
@@ -123,6 +125,8 @@ def process_campaign(
             log_rows.append(log_row)
             continue
 
+        if progress_callback:
+            progress_callback(stats, f"Checking business hours for country: {row_data.get('country', '')}")
         business_hours = check_business_hours(row_data.get("country", ""))
         if not business_hours.valid_country:
             log_row["send_result"] = "Skipped"
@@ -143,6 +147,8 @@ def process_campaign(
 
         for email_col_index, email_col in enumerate(["email1", "email2", "email3"]):
             candidate = row_data.get(email_col, "").strip()
+            if progress_callback:
+                progress_callback(stats, f"Evaluating {email_col} for {row_data.get('name', 'prospect')}: {candidate or '[empty]'}")
             if not candidate:
                 continue
 
@@ -151,6 +157,8 @@ def process_campaign(
                 continue
 
             if verification_enabled_runtime and verifalia_client:
+                if progress_callback:
+                    progress_callback(stats, f"Fetching information from Verifalia for {candidate} ({settings.verification_quality})")
                 try:
                     verification = verifalia_client.verify_email(candidate, settings.verification_quality)
                     log_row[classification_keys[email_col_index]] = verification.classification
@@ -170,12 +178,16 @@ def process_campaign(
                     break
 
                 if verification and verification.is_sendable:
+                    if progress_callback:
+                        progress_callback(stats, f"Verifalia accepted {candidate} as {verification.classification}")
                     selected_email = candidate
                     selected_classification = verification.classification
                     break
                 continue
 
             log_row[classification_keys[email_col_index]] = "BasicFormatValid"
+            if progress_callback:
+                progress_callback(stats, f"Verification OFF, using basic-format email: {candidate}")
             selected_email = candidate
             selected_classification = "BasicFormatValid"
             break
@@ -194,6 +206,8 @@ def process_campaign(
         rendered_subject = render_template(row_data.get("subject", ""), row_data)
         rendered_body = render_template(row_data.get("body", ""), row_data)
 
+        if progress_callback:
+            progress_callback(stats, f"Sending email to {selected_email} from {sender}")
         send_response = graph_client.send_mail(
             sender=sender,
             recipient_email=selected_email,
@@ -207,9 +221,13 @@ def process_campaign(
         log_row["final_classification"] = selected_classification
 
         if send_response.ok:
+            if progress_callback:
+                progress_callback(stats, f"Sent email successfully to {selected_email}")
             log_row["send_result"] = "Sent"
             stats.sent_count += 1
         else:
+            if progress_callback:
+                progress_callback(stats, f"Send failed for {selected_email} with status {send_response.status_code}")
             log_row["send_result"] = "Failed"
             log_row["error_message"] = send_response.error_message or "Send_Failed"
             stats.failed_count += 1
@@ -218,6 +236,8 @@ def process_campaign(
 
         if stats.sent_count < settings.max_emails_per_run:
             delay = random.randint(settings.delay_min_seconds, settings.delay_max_seconds)
+            if progress_callback:
+                progress_callback(stats, f"Enforcing delay for {delay} seconds before next send")
             was_stopped = _interruptible_sleep(delay, should_stop)
             if was_stopped:
                 break
